@@ -6,8 +6,8 @@ import { UploadZone } from "@/components/dashboard/UploadZone";
 import { ATSResults } from "@/components/dashboard/ATSResults";
 import { motion, AnimatePresence } from "framer-motion";
 import { scanResumeWithGemini, parseResumeToSections } from "@/lib/gemini";
-// Removed unused Link import
 import { Sidebar } from "@/components/layout/Sidebar";
+import { UploadCloud, FilePlus2 } from "lucide-react";
 
 export default function Dashboard() {
   const { user, logout } = useMockAuth();
@@ -15,6 +15,8 @@ export default function Dashboard() {
   const [resumeText, setResumeText] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [analysis, setAnalysis] = useState<any>(null);
+  
+  const [selectedCard, setSelectedCard] = useState<'upload' | 'build' | null>(null);
 
   useEffect(() => {
     // If not logged in, redirect
@@ -82,9 +84,46 @@ export default function Dashboard() {
               >
                 <div className="text-center mb-12">
                    <h1 className="text-4xl md:text-5xl font-light tracking-tight mb-4">Let&apos;s refine your <span className="text-amber-500">resume</span>.</h1>
-                   <p className="text-muted-foreground font-light">Upload your latest PDF or DOCX format resume to begin.</p>
+                   <p className="text-muted-foreground font-light mb-8">Choose how you want to start.</p>
+                   
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+                     {/* Upload Card */}
+                     <div 
+                       onClick={() => setSelectedCard(selectedCard === 'upload' ? null : 'upload')}
+                       className={`bg-[#0a0a0a] border ${selectedCard === 'upload' ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-white/10 hover:border-amber-500/50 hover:shadow-[0_0_15px_rgba(245,158,11,0.1)]'} rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center justify-center text-center group`}
+                     >
+                       <UploadCloud className={`w-8 h-8 mb-4 ${selectedCard === 'upload' ? 'text-amber-500' : 'text-muted-foreground group-hover:text-amber-500/70'} transition-colors`} />
+                       <h3 className="text-xl font-medium mb-2">Upload Resume</h3>
+                       <p className="text-sm text-muted-foreground/80 font-light">Scan your existing resume and refine it with AI.</p>
+                     </div>
+
+                     {/* Build Card */}
+                     <div 
+                       onClick={() => {
+                         setSelectedCard('build');
+                         router.push('/dashboard/builder');
+                       }}
+                       className={`bg-[#0a0a0a] border ${selectedCard === 'build' ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-white/10 hover:border-amber-500/50 hover:shadow-[0_0_15px_rgba(245,158,11,0.1)]'} rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center justify-center text-center group`}
+                     >
+                       <FilePlus2 className={`w-8 h-8 mb-4 ${selectedCard === 'build' ? 'text-amber-500' : 'text-muted-foreground group-hover:text-amber-500/70'} transition-colors`} />
+                       <h3 className="text-xl font-medium mb-2">Build from Blank</h3>
+                       <p className="text-sm text-muted-foreground/80 font-light">Answer a few questions and let AI build you a perfect resume.</p>
+                     </div>
+                   </div>
                 </div>
-                <UploadZone onFileScanned={handleFileScanned} />
+
+                <AnimatePresence>
+                  {selectedCard === 'upload' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 32 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <UploadZone onFileScanned={handleFileScanned} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             ) : (
               <motion.div 

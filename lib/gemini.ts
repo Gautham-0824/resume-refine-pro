@@ -70,6 +70,77 @@ Return ONLY JSON. Do not return markdown fences.`;
   return callGemini(systemPrompt, resumeText);
 }
 
+export async function buildResumeWithGemini(builderData: any) {
+  const systemPrompt = `You are an expert resume writer who specializes in creating ATS-optimized resumes. 
+The user is providing their raw details and a target job description. You must return a single JSON object with no markdown fences, no explanations, just the JSON.
+
+Structure:
+{
+  "contactInfo": {
+    "name": "string",
+    "email": "string",
+    "phone": "string",
+    "location": "string",
+    "linkedin": "string",
+    "github": "string",
+    "portfolio": "string"
+  },
+  "summary": "2-3 sentence professional summary tailored to the target role, keyword-rich, ATS-optimized",
+  "education": [
+    {
+      "institution": "string",
+      "location": "string",
+      "degree": "string",
+      "startDate": "string",
+      "endDate": "string"
+    }
+  ],
+  "experience": [
+    {
+      "title": "string",
+      "company": "string",
+      "location": "string",
+      "startDate": "string",
+      "endDate": "string",
+      "bullets": ["string"] 
+    }
+  ],
+  "projects": [
+    {
+      "name": "string",
+      "technologies": "string",
+      "startDate": "string",
+      "endDate": "string",
+      "bullets": ["string"]
+    }
+  ],
+  "certifications": [
+    {
+      "name": "string",
+      "issuer": "string",
+      "date": "string"
+    }
+  ],
+  "skills": {
+    "languages": "string",
+    "frameworks": "string",
+    "developerTools": "string",
+    "libraries": "string"
+  }
+}
+
+INSTRUCTIONS: 
+1. Enhance every bullet point the user wrote using the STAR method where possible. 
+2. Inject relevant keywords from the job description naturally into bullet points and the summary. 
+3. Ensure every bullet begins with a strong past-tense action verb (unless it's a present role, then use present tense but strong verbs).
+4. Add quantification wherever it can be reasonably inferred or suggested.
+5. Make the overall resume highly competitive for the target role.
+Return ONLY JSON. Do not return markdown fences.`;
+
+  const prompt = `User Data:\n${JSON.stringify(builderData, null, 2)}`;
+  return callGemini(systemPrompt, prompt);
+}
+
 async function callGemini(systemInstruction: string, prompt: string) {
   try {
     // In a real application with a provided API key, we call Gemini directly
@@ -154,7 +225,67 @@ function mockResponse(promptType: string, prompt?: string) {
         return {
             "summary": prompt || "Summary not available."
         };
-    } else {
+    } else if (promptType.includes("expert resume writer who specializes in creating ATS-optimized")) {
+        // Fallback for Build from Blank
+        const parsed = prompt ? JSON.parse(prompt.replace("User Data:\n", "")) : {};
+        const contact = parsed.contactInfo || {};
+        
+        return {
+           "contactInfo": {
+             "name": contact.name || "Jane Doe",
+             "email": contact.email || "jane@example.com",
+             "phone": contact.phone || "(555) 123-4567",
+             "location": contact.location || "San Francisco, CA",
+             "linkedin": contact.linkedin || "linkedin.com/in/janedoe",
+             "github": contact.github || "github.com/janedoe",
+             "portfolio": contact.portfolio || ""
+           },
+           "summary": "Highly motivated and detail-oriented professional with a proven track record of delivering scalable solutions. Skilled in modern web technologies and cross-functional team collaboration. Adept at driving project success from conception to deployment.",
+           "education": parsed.education && parsed.education.length > 0 && parsed.education[0].institution ? parsed.education : [
+             {
+               "institution": "University of Technology",
+               "location": "San Francisco, CA",
+               "degree": "Bachelor of Science in Computer Science",
+               "startDate": "Aug 2018",
+               "endDate": "May 2022"
+             }
+           ],
+           "experience": parsed.experience && parsed.experience.length > 0 && parsed.experience[0].company ? parsed.experience.map((e:any) => ({
+              ...e,
+              bullets: [
+                 `Spearheaded the development of scalable applications, resulting in a 20% increase in performance.`,
+                 `Collaborated with cross-functional teams to design and implement robust architectures.`,
+                 `Led the migration of legacy systems to modern frameworks, reducing technical debt by 30%.`
+              ]
+           })) : [
+             {
+               "title": "Software Engineer",
+               "company": "Tech Corp",
+               "location": "San Francisco, CA",
+               "startDate": "June 2022",
+               "endDate": "Present",
+               "bullets": [
+                 "Developed a REST API using FastAPI and PostgreSQL to store data.",
+                 "Improved application performance by 20% through extensive code optimization.",
+                 "Collaborated with cross-functional teams to deliver features on time."
+               ]
+             }
+           ],
+           "projects": parsed.projects && parsed.projects.length > 0 && parsed.projects[0].name ? parsed.projects.map((p:any) => ({
+              ...p,
+              bullets: [
+                 `Engineered a comprehensive system to solve complex domain problems using ${p.technologies || "modern technologies"}.`,
+                 `Deployed application via CI/CD pipelines ensuring 99.9% uptime.`
+              ]
+           })) : [],
+           "certifications": parsed.certifications && parsed.certifications.length > 0 && parsed.certifications[0].name ? parsed.certifications : [],
+           "skills": parsed.skills && (parsed.skills.languages || parsed.skills.frameworks) ? parsed.skills : {
+             "languages": "Java, Python, C/C++, SQL, JavaScript",
+             "frameworks": "React, Node.js, Flask",
+             "developerTools": "Git, Docker, VS Code",
+             "libraries": "pandas, NumPy"
+           }
+        };
         return {
             "message": "I've updated your summary to highlight your expertise as requested.",
             "changes": [
